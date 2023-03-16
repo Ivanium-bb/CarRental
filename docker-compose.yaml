@@ -1,0 +1,35 @@
+services:
+  car_db:
+    image: postgres:14.4
+    container_name: db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+       - postgres_data:/var/lib/postgresql/data
+
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+  web:
+    build: .
+    restart: always
+    command: sh -c "python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - 8000:8000
+    depends_on:
+      car_db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
